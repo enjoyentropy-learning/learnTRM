@@ -1,9 +1,11 @@
+
 Used e2eNetworks.
 
 NVIDIA optimised PyTorch v2.8 with Python 3.12 and NVIDIA Cuda 12.9.1 pre-installed on Ubuntu 24.04
 NVIDIA L40S
-
 48GB GPU Memory
+
+** Could not use adam-tan2, so used different optimizer. See the commit.
 
 
 https://vizuara.substack.com/p/tiny-recursive-model-trm
