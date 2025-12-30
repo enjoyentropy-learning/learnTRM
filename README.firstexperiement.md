@@ -4,6 +4,7 @@ source .sudokuvenv/bin/activate
 pip install --upgrade pip wheel setuptools
 pip install torch torchvision torchaudio
 pip install -r requirements_infer.txt
+python3 infer_one_sudoku.py
 
 
 
