@@ -1,3 +1,11 @@
+To run the infer_one_sudoku.py
+python3 -m venv .sudokuvenv
+source .sudokuvenv/bin/activate
+pip install --upgrade pip wheel setuptools
+pip install torch torchvision torchaudio
+pip install -r requirements_infer.txt
+
+
 
 Used e2eNetworks.
 
