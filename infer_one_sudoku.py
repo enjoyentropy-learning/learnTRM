@@ -240,9 +240,11 @@ with torch.no_grad():
             carry=carry,
             batch=batch,
         )
-        #finished = carry.halted.all()
+        #This does not work in eval mode as this part is only done in the train mode.
+        #so in eval mode this logic will result in max steps. (llm)
+        # finished = carry.halted.all()
         #print ("halt? :", finished)
-        #halt_prob = torch.sigmoid(outputs["q_halt_logits"]).item()
+
         q_halt_logits = outputs["q_halt_logits"]
         halt_prob = torch.sigmoid(q_halt_logits).item()
 
@@ -260,6 +262,8 @@ with torch.no_grad():
         if q_halt_logits.item() > 0:
             print(f"Model confident - halting in {step} (0 indexed)")
             break
+
+        # Will not work in eval mode see previous comment
         #if finished:
            # break
 
