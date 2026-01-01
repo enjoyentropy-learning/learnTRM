@@ -124,7 +124,7 @@ print("Model loaded successfully.")
 # 6. Sudoku input (81 chars, '.' or '0' = blank)
 # ==================================================
 
-sudoku_str = (
+sudoku_str1 = (
     "53..7...."
     "6..195..."
     ".98....6."
@@ -136,7 +136,8 @@ sudoku_str = (
     "....8..79"
 )
 
-sudoku_str2 = (
+#This one fails
+sudoku_str = (
     "1.5.9.8.."
     ".9.6.1.5."
     "8..5.2.1."
@@ -239,8 +240,11 @@ with torch.no_grad():
             carry=carry,
             batch=batch,
         )
-
-        halt_prob = torch.sigmoid(outputs["q_halt_logits"]).item()
+        #finished = carry.halted.all()
+        #print ("halt? :", finished)
+        #halt_prob = torch.sigmoid(outputs["q_halt_logits"]).item()
+        q_halt_logits = outputs["q_halt_logits"]
+        halt_prob = torch.sigmoid(q_halt_logits).item()
 
         if DEBUG:
             print(f"[step {step}] halt_prob = {halt_prob:.4f}")
@@ -250,8 +254,14 @@ with torch.no_grad():
             pred_digits = decode_sudoku(pred_tokens)
             print(pred_digits[0].view(9, 9))
 
-        if halt_prob > 0.95:
+        #if halt_prob > 0.95:
+            #break
+
+        if q_halt_logits.item() > 0:
+            print(f"Model confident - halting in {step} (0 indexed)")
             break
+        #if finished:
+           # break
 
 
 
