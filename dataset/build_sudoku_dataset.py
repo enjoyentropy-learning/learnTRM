@@ -14,6 +14,12 @@ from common import PuzzleDatasetMetadata
 
 cli = ArgParser()
 
+# Used for TRM
+#  python dataset/build_sudoku_dataset.py --output-dir data/sudoku-extreme-1k-aug-1000  --subsample-size 1000 --num-aug 1000  # 1000 examples, 1000 augments
+#
+# Used for simple
+# python dataset/build_sudoku_dataset.py --output-dir data/sudoku-simple-10  --subsample-size 10 --max-difficulty 3 --no-include-test 
+
 
 class DataProcessConfig(BaseModel):
     source_repo: str = "sapientinc/sudoku-extreme"
@@ -21,7 +27,9 @@ class DataProcessConfig(BaseModel):
 
     subsample_size: Optional[int] = None
     min_difficulty: Optional[int] = None
+    max_difficulty: Optional[int] = None   # NEW
     num_aug: int = 0
+    include_test: bool = True  
 
 
 def shuffle_sudoku(board: np.ndarray, solution: np.ndarray):
@@ -66,16 +74,24 @@ def convert_subset(set_name: str, config: DataProcessConfig):
         reader = csv.reader(csvfile)
         next(reader)  # Skip header
         for source, q, a, rating in reader:
-            if (config.min_difficulty is None) or (int(rating) >= config.min_difficulty):
-                assert len(q) == 81 and len(a) == 81
-                
-                inputs.append(np.frombuffer(q.replace('.', '0').encode(), dtype=np.uint8).reshape(9, 9) - ord('0'))
-                labels.append(np.frombuffer(a.encode(), dtype=np.uint8).reshape(9, 9) - ord('0'))
+            rating = int(rating)
+
+            if config.min_difficulty is not None and rating < config.min_difficulty:
+                continue
+
+            if config.max_difficulty is not None and rating >= config.max_difficulty:
+                continue
+
+            assert len(q) == 81 and len(a) == 81
+            print("rating = ", rating)
+            inputs.append(np.frombuffer(q.replace('.', '0').encode(), dtype=np.uint8).reshape(9, 9) - ord('0'))
+            labels.append(np.frombuffer(a.encode(), dtype=np.uint8).reshape(9, 9) - ord('0'))
 
     # If subsample_size is specified for the training set,
     # randomly sample the desired number of examples.
     if set_name == "train" and config.subsample_size is not None:
         total_samples = len(inputs)
+        print("Total Samples: ", total_samples)
         if config.subsample_size < total_samples:
             indices = np.random.choice(total_samples, size=config.subsample_size, replace=False)
             inputs = [inputs[i] for i in indices]
@@ -160,7 +176,9 @@ def convert_subset(set_name: str, config: DataProcessConfig):
 @cli.command(singleton=True)
 def preprocess_data(config: DataProcessConfig):
     convert_subset("train", config)
-    convert_subset("test", config)
+    if config.include_test:
+        convert_subset("test", config)
+
 
 
 if __name__ == "__main__":

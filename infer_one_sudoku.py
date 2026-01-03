@@ -2,6 +2,24 @@ import os
 import sys
 import torch
 from omegaconf import OmegaConf
+import numpy as np
+import argparse
+
+# Load ONE test example from preprocessed dataset
+DATA_DIR = "data/sudoku-extreme-1k-aug-1000"
+INDEX = 2 # choose test index, index=2 results in answer in multiple iterations. index=8 one iteration, index=25 can't solve
+
+#python3 infer_one_sudoku.py --index 8
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--index",
+    type=int,
+    default=0,
+    help="Index of test Sudoku to run inference on"
+)
+args = parser.parse_args()
+INDEX = args.index
+
 
 def verify_solution_with_input(input_grid, output_grid):
     """
@@ -119,10 +137,52 @@ model.eval()
 model.cpu()
 
 print("Model loaded successfully.")
+def do_not_use_load_test_batch(data_dir, indices, device):
+    """
+    Load a batch of Sudoku puzzles from the TEST split.
+
+    Returns:
+        model_inputs : (B, 81) LongTensor, values 1..10
+        grids        : (B, 9, 9) LongTensor, values 0..9
+        gt_grids     : (B, 9, 9) LongTensor, values 0..9
+    """
+    test_dir = os.path.join(data_dir, "test")
+
+    inputs = np.load(os.path.join(test_dir, "all__inputs.npy"))
+    labels = np.load(os.path.join(test_dir, "all__labels.npy"))
+
+    # Ensure indices is iterable
+    if isinstance(indices, int):
+        indices = [indices]
+
+    # Model inputs (keep tokenization!)
+    model_inputs = torch.tensor(
+        inputs[indices],
+        dtype=torch.long,
+        device=device
+    )  # (B, 81), values 1..10
+
+    # Human-readable grids
+    grids = torch.tensor(
+        inputs[indices] - 1,
+        dtype=torch.long,
+        device=device
+    ).view(-1, 9, 9)
+
+    gt_grids = torch.tensor(
+        labels[indices] - 1,
+        dtype=torch.long,
+        device=device
+    ).view(-1, 9, 9)
+
+    return model_inputs, grids, gt_grids
+
 
 # ==================================================
 # 6. Sudoku input (81 chars, '.' or '0' = blank)
 # ==================================================
+
+#input from test file
 
 sudoku_str1 = (
     "53..7...."
@@ -207,6 +267,23 @@ def sudoku_to_tensor(s):
 digits = sudoku_to_tensor(sudoku_str)
 inputs = encode_sudoku(digits)
 inp_grid = digits[0].reshape(9, 9)
+
+
+inputs_np = np.load(os.path.join(DATA_DIR, "test", "all__inputs.npy"))
+
+# Model input (exactly what training used)
+inputs = torch.tensor(inputs_np[INDEX], dtype=torch.long).unsqueeze(0)  # (1, 81)
+
+# Grid form (only for printing / verification)
+# -1 is to decode
+inp_grid = (inputs[0] - 1).reshape(9, 9)
+
+# Ground Truth
+labels_np = np.load(os.path.join(DATA_DIR, "test", "all__labels.npy"))
+
+# Ground-truth solution grid (0–9)
+# -1 is to decode
+gt_grid = (torch.tensor(labels_np[INDEX], dtype=torch.long) - 1).reshape(9, 9)
 
 # ==================================================
 # 8. Inference
@@ -300,3 +377,7 @@ pretty(pred_grid.tolist())
 
 is_valid, msg = verify_solution_with_input(inp_grid, pred_grid)
 print("VERIFICATION:", msg)
+
+is_correct = torch.equal(pred_grid, gt_grid)
+print("MATCHES GROUND TRUTH:", is_correct)
+
