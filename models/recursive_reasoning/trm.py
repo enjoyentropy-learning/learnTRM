@@ -209,11 +209,11 @@ class TinyRecursiveReasoningModel_ACTV1_Inner(nn.Module):
             for _H_step in range(self.config.H_cycles-1):
                 for _L_step in range(self.config.L_cycles):
                     z_L = self.L_level(z_L, z_H + input_embeddings, **seq_info)
-                z_H = self.L_level(z_H, z_L, **seq_info)
+                z_H = self.L_level(z_H, z_L + input_embeddings, **seq_info)
         # 1 with grad
         for _L_step in range(self.config.L_cycles):
             z_L = self.L_level(z_L, z_H + input_embeddings, **seq_info)
-        z_H = self.L_level(z_H, z_L, **seq_info)
+        z_H = self.L_level(z_H, z_L + input_embeddings, **seq_info)
 
         # LM Outputs
         new_carry = TinyRecursiveReasoningModel_ACTV1InnerCarry(z_H=z_H.detach(), z_L=z_L.detach())  # New carry no grad
