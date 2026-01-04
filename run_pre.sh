@@ -2,7 +2,7 @@
 set -e
 export DISABLE_COMPILE=1
 
-run_name="pretrain_mlp_t_sudoku_full2"
+run_name="pretrain_mlp_t_sudoku_trmModified2"
 
 python pretrain.py \
   arch=trm \
